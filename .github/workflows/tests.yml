@@ -60,4 +60,4 @@ jobs:
           python -B -m unittest
           app.tests.test_readable app.tests.test_bridge app.tests.test_setup app.tests.test_data_folder app.tests.test_what_ships
           app.tests.test_update app.tests.test_address_search app.tests.test_topic_search app.tests.test_chat_steps
-          app.tests.test_validate_topics app.tests.test_libq app.tests.test_shell_macos
+          app.tests.test_validate_topics app.tests.test_libq app.tests.test_shell_macos app.tests.test_run_source_linux
