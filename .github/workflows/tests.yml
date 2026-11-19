@@ -1,0 +1,63 @@
+# The test command in CONTRIBUTING.md, on Linux, macOS and Windows, for every pull request and every change to main.
+# Nothing here needs a library, a secret or a service on the internet: test_bridge builds its own small made-up library
+# (app/tests/fixture.py), and the setup and update tests serve their files from 127.0.0.1. pip installs the pinned packages.
+# The token is read-only, and pull_request (not pull_request_target) runs a pull request's code without any write access.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux (Ubuntu 24.04, Python 3.12)
+            os: ubuntu-24.04
+            python: '3.12'
+            pins: packaging/linux/requirements_linux.txt
+            extra: ''
+          - name: macOS (Apple silicon, Python 3.11)
+            os: macos-15
+            python: '3.11'
+            pins: packaging/requirements_macos.txt
+            extra: pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit    # for test_shell_macos
+          - name: Windows (Python 3.14)
+            os: windows-2025
+            python: '3.14'
+            pins: packaging/requirements_app.txt
+            extra: ''
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1    # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0    # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1    # v7.1.0, for test_topic_search and the other Node checks
+        with:
+          node-version: '22'
+      - name: Install the packages the tests import (versions from the platform's own requirements file)
+        shell: bash
+        run: python -m pip install --disable-pip-version-check -c "${{ matrix.pins }}" libzim numpy beautifulsoup4 pypdfium2 ${{ matrix.extra }}
+      - name: The test command in CONTRIBUTING.md
+        shell: bash
+        run: >
+          python -B -m unittest
+          app.tests.test_readable app.tests.test_bridge app.tests.test_setup app.tests.test_data_folder app.tests.test_what_ships
+          app.tests.test_update app.tests.test_address_search app.tests.test_topic_search app.tests.test_chat_steps
+          app.tests.test_validate_topics app.tests.test_libq app.tests.test_shell_macos
